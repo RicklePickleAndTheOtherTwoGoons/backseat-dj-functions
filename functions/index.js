@@ -15,14 +15,23 @@ function makeid() {
 exports.createNewSession = functions.https.onRequest((req,res) => {
 	const sessionCode = makeid();
 	return db.ref('/queues').push({sessionCode: sessionCode}).then((snapshot) => {
-		return res.redirect(303, snapshot.ref.toString());
+		return res.send(200, snapshot.key.toString())
 	})
 })
 
 exports.addSongToSession = functions.https.onRequest((req,res) => {
 	const sessionCode = req.query.session;
 	const spotifyID = req.query.spotifyid;
-	return db.ref('/queues').child(sessionCode+'/songs').push({song: spotifyID}).then((snapshot) => {
-		return res.redirect(303, snapshot.ref.toString());
+	return db.ref('/queues').child(sessionCode+'/songs').push({song: spotifyID,added: Date.now()}).then((snapshot) => {
+		return res.send(200, snapshot.key.toString());
+	})
+})
+
+exports.playSong = functions.https.onRequest((req,res) => {
+	const sessionCode = req.query.session;
+	return db.ref('/queues').child(sessionCode+'/songs').orderByKey().on("child_added", function(snapshot) {
+		res.send(200, snapshot.val().song.toString())
+		db.ref('/queues/'+sessionCode+'/songs/'+snapshot.key).set({song: null})
+		return
 	})
 })
