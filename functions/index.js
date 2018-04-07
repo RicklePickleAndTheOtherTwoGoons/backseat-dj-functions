@@ -1,6 +1,7 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 admin.initializeApp();
+const db = admin.database();
 
 function makeid() {
 	var text = "";
@@ -13,7 +14,15 @@ function makeid() {
 
 exports.createNewSession = functions.https.onRequest((req,res) => {
 	const sessionCode = makeid();
-	return admin.database().ref('/queues').push({sessionCode: sessionCode}).then((snapshot) => {
+	return db.ref('/queues').push({sessionCode: sessionCode}).then((snapshot) => {
+		return res.redirect(303, snapshot.ref.toString());
+	})
+})
+
+exports.addSongToSession = functions.https.onRequest((req,res) => {
+	const sessionCode = req.query.session;
+	const spotifyID = req.query.spotifyid;
+	return db.ref('/queues').child(sessionCode+'/songs').push({song: spotifyID}).then((snapshot) => {
 		return res.redirect(303, snapshot.ref.toString());
 	})
 })
